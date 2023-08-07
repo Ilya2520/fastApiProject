@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+
+  db:
+    build:
+      context: .
+      dockerfile: docker/db.dockerfile
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+  app:
+    build:
+      context: .
+      dockerfile: docker/app.dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    volumes:
+      - app-data:/app/data
+
+volumes:
+  app-data:

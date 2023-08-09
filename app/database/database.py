@@ -5,7 +5,7 @@ import uuid
 # Third Party
 from sqlalchemy import Column, ForeignKey, Numeric, String, create_engine, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, sessionmaker, DeclarativeBase
+from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 
 POSTGRES_USER = os.environ.get('POSTGRES_USER')
 POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
@@ -19,20 +19,18 @@ DATABASE_URL = (
 )
 
 engine = create_engine(DATABASE_URL)
+Base = declarative_base()
 Session = sessionmaker(bind=engine)
 session = Session()
 
-#
+
+# Base = declarative_base()
 # engine = create_engine('postgresql://postgres:1234@localhost:5432/postgres')
 # Session = sessionmaker(bind=engine)
 # session = Session()
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-class MenuModel(Base):
+class MenuModel(Base):  # type: ignore
     __tablename__ = 'menus'
     id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True
@@ -42,7 +40,7 @@ class MenuModel(Base):
     submenus = relationship('SubmenuModel', back_populates='menu')
 
 
-class SubmenuModel(Base):
+class SubmenuModel(Base):  # type: ignore
     __tablename__ = 'submenus'
     id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True
@@ -54,7 +52,7 @@ class SubmenuModel(Base):
     dishes = relationship('DishModel', back_populates='submenu')
 
 
-class DishModel(Base):
+class DishModel(Base):  # type: ignore
     __tablename__ = 'dishes'
     id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True

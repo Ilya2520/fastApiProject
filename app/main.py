@@ -2,6 +2,7 @@
 # Third Party
 from fastapi import FastAPI
 
+
 # Library
 from app.database.database import Session as db_session
 from app.database.database import clear_database

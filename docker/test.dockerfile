@@ -9,6 +9,6 @@ COPY app/requirements_for_test.txt .
 
 RUN pip install --no-cache-dir -r requirements_for_test.txt
 
-COPY . ./
+COPY . .
 
 CMD ["pytest", "-vv"]

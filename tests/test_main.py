@@ -1,10 +1,8 @@
 # Standard Library
 import uuid
-
-from fastapi.testclient import TestClient
-
 # Third Party
 from app.database.database import DishModel, MenuModel, Session, SubmenuModel
+from fastapi.testclient import TestClient
 from app.main import app
 
 client = TestClient(app)

@@ -1,6 +1,8 @@
 # Standard Library
+from __future__ import annotations
+
 import uuid
-from typing import Union
+
 
 # Third Party
 from fastapi import Depends, HTTPException
@@ -25,8 +27,8 @@ class SubmenuRepository(Repository):
 
     def get_all(
         self,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None] = None,
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None = None,
     ):
         menu = (
             self.session.query(MenuModel)
@@ -42,19 +44,19 @@ class SubmenuRepository(Repository):
             for dish in submenu.dishes:
                 submenu_dishes.append(
                     {
-                        "id": dish.id,
-                        "title": dish.title,
-                        "description": dish.description,
-                        "price": dish.price,
+                        'id': dish.id,
+                        'title': dish.title,
+                        'description': dish.description,
+                        'price': dish.price,
                     }
                 )
             submenu_info.append(
                 {
-                    "id": submenu.id,
-                    "title": submenu.title,
-                    "description": submenu.description,
-                    "dishes": submenu_dishes,
-                    "dishes_count": dishes_count,
+                    'id': submenu.id,
+                    'title': submenu.title,
+                    'description': submenu.description,
+                    'dishes': submenu_dishes,
+                    'dishes_count': dishes_count,
                 }
             )
         return submenu_info
@@ -62,8 +64,8 @@ class SubmenuRepository(Repository):
     def create(
         self,
         submenu: Submenu,
-        menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
+        menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
     ):
         nw_submenu = SubmenuModel(
             title=submenu.title, description=submenu.description
@@ -80,17 +82,17 @@ class SubmenuRepository(Repository):
         self.session.add(nw_submenu)
         self.session.commit()
         return {
-            "id": nw_submenu.id,
-            "title": nw_submenu.title,
-            "description": nw_submenu.description,
-            "dishes_count": dishes_count,
+            'id': nw_submenu.id,
+            'title': nw_submenu.title,
+            'description': nw_submenu.description,
+            'dishes_count': dishes_count,
         }
 
     def get(
         self,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
-        dish_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
+        dish_id: uuid.UUID | None,
     ):
         menu = (
             self.session.query(MenuModel)
@@ -103,29 +105,29 @@ class SubmenuRepository(Repository):
                     self.session, submenu_id
                 )
                 submenu_info = {
-                    "id": a.id,
-                    "title": a.title,
-                    "description": a.description,
-                    "dishes_count": dishes_count,
+                    'id': a.id,
+                    'title': a.title,
+                    'description': a.description,
+                    'dishes_count': dishes_count,
                 }
                 dishes_info = [
                     {
-                        "id": dish.id,
-                        "title": dish.title,
-                        "description": dish.description,
-                        "price": format_price(dish.price),
+                        'id': dish.id,
+                        'title': dish.title,
+                        'description': dish.description,
+                        'price': format_price(dish.price),
                     }
                     for dish in a.dishes
                 ]
-                submenu_info["dishes"] = dishes_info
+                submenu_info['dishes'] = dishes_info
                 return submenu_info
-        raise HTTPException(status_code=404, detail="submenu not found")
+        raise HTTPException(status_code=404, detail='submenu not found')
 
     def update(
         self,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
-        dish_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
+        dish_id: uuid.UUID | None,
         submenu: Submenu,
     ):
         menu = (
@@ -143,18 +145,18 @@ class SubmenuRepository(Repository):
                     self.session.commit()
                     self.session.refresh(a)
                     return {
-                        "id": a.id,
-                        "title": a.title,
-                        "description": a.description,
+                        'id': a.id,
+                        'title': a.title,
+                        'description': a.description,
                     }
-            raise HTTPException(status_code=404, detail="Submenu not found")
-        raise HTTPException(status_code=404, detail="Menu not found")
+            raise HTTPException(status_code=404, detail='Submenu not found')
+        raise HTTPException(status_code=404, detail='Menu not found')
 
     def delete(
         self,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
-        dish_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
+        dish_id: uuid.UUID | None,
     ):
         menu = (
             self.session.query(MenuModel)
@@ -167,5 +169,5 @@ class SubmenuRepository(Repository):
                     self.session.delete(dish)
                 self.session.delete(submenu)
                 self.session.commit()
-                return {"message": "successful delete"}
-        raise HTTPException(status_code=404, detail="submenu not found")
+                return {'message': 'successful delete'}
+        raise HTTPException(status_code=404, detail='submenu not found')

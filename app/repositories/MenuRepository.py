@@ -1,6 +1,7 @@
 # Standard Library
+from __future__ import annotations
+
 import uuid
-from typing import Union
 
 # Third Party
 from fastapi import Depends, HTTPException
@@ -26,26 +27,26 @@ class MenuRepository(Repository):
     def create(
         self,
         menu: Menu,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
     ) -> dict:
         db_menu = MenuModel(title=menu.title, description=menu.description)
         self.session.add(db_menu)
         self.session.commit()
         self.session.refresh(db_menu)
         return {
-            "id": db_menu.id,
-            "title": db_menu.title,
-            "description": db_menu.description,
-            "submenu_count": 0,
-            "dishes_count": 0,
+            'id': db_menu.id,
+            'title': db_menu.title,
+            'description': db_menu.description,
+            'submenu_count': 0,
+            'dishes_count': 0,
         }
 
     def get(
         self,
-        menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
-        dish_id: Union[uuid.UUID, None],
+        menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
+        dish_id: uuid.UUID | None,
     ):
         db_menu = (
             self.session.query(MenuModel)
@@ -57,24 +58,24 @@ class MenuRepository(Repository):
 
         submenu_info = [
             {
-                "id": submenu.id,
-                "title": submenu.title,
-                "description": submenu.description,
-                "dishes_count": submenu.dishes_count,
+                'id': submenu.id,
+                'title': submenu.title,
+                'description': submenu.description,
+                'dishes_count': submenu.dishes_count,
             }
             for submenu in submenus_with_dishes
         ]
 
         if db_menu is None:
-            raise HTTPException(status_code=404, detail="menu not found")
+            raise HTTPException(status_code=404, detail='menu not found')
         else:
             menu_info = {
-                "id": menu_id,
-                "title": db_menu.title,
-                "description": db_menu.description,
-                "submenus_count": submenus_count,
-                "submenus": submenu_info,
-                "dishes_count": sum(
+                'id': menu_id,
+                'title': db_menu.title,
+                'description': db_menu.description,
+                'submenus_count': submenus_count,
+                'submenus': submenu_info,
+                'dishes_count': sum(
                     submenu.dishes_count for submenu in submenus_with_dishes
                 ),
             }
@@ -82,8 +83,8 @@ class MenuRepository(Repository):
 
     def get_all(
         self,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
     ):
         all_menus = self.session.query(MenuModel).all()
         menus_info = []
@@ -96,12 +97,12 @@ class MenuRepository(Repository):
 
             menus_info.append(
                 {
-                    "id": menu.id,
-                    "title": menu.title,
-                    "description": menu.description,
-                    "submenus": submenu_info,
-                    "submenus_count": submenus_count,
-                    "dishes_count": sum(
+                    'id': menu.id,
+                    'title': menu.title,
+                    'description': menu.description,
+                    'submenus': submenu_info,
+                    'submenus_count': submenus_count,
+                    'dishes_count': sum(
                         submenu.dishes_count
                         for submenu in submenus_with_dishes
                     ),
@@ -111,14 +112,14 @@ class MenuRepository(Repository):
 
     def update(
         self,
-        target_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
-        dish_id: Union[uuid.UUID, None],
+        target_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
+        dish_id: uuid.UUID | None,
         menu: Menu,
     ):
         if target_menu_id is None:
             raise HTTPException(
-                status_code=400, detail="Invalid target_menu_id"
+                status_code=400, detail='Invalid target_menu_id'
             )
         db_menu = (
             self.session.query(MenuModel)
@@ -138,13 +139,13 @@ class MenuRepository(Repository):
                 description=db_menu.description,
             )
         else:
-            raise HTTPException(status_code=404, detail="Menu not found")
+            raise HTTPException(status_code=404, detail='Menu not found')
 
     def delete(
         self,
-        menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
-        dish_id: Union[uuid.UUID, None],
+        menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
+        dish_id: uuid.UUID | None,
     ):
         db_menu = (
             self.session.query(MenuModel)
@@ -156,5 +157,5 @@ class MenuRepository(Repository):
                 self.session.delete(submenu)
             self.session.delete(db_menu)
             self.session.commit()
-            return {"message": "successful"}
-        return {"message": "error"}
+            return {'message': 'successful'}
+        return {'message': 'error'}

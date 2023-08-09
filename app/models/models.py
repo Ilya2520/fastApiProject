@@ -1,6 +1,5 @@
 # Standard Library
 from decimal import Decimal
-from typing import List, Optional
 
 # Third Party
 from pydantic import UUID4, BaseModel
@@ -15,21 +14,21 @@ class Dish(BaseModel):
 class Submenu(BaseModel):
     title: str
     description: str
-    dishes: Optional[List[Dish]] = []
+    dishes: list[Dish] | None = []
     dishes_count: int = 0
 
 
 class Menu(BaseModel):
     title: str
     description: str
-    submenus: Optional[List[Submenu]] = []
+    submenus: list[Submenu] | None = []
     dishes_count: int = 0
     submenus_count: int = 0
 
 
 class MenuUpdate(BaseModel):
-    title: Optional[str]
-    description: Optional[str]
+    title: str | None
+    description: str | None
 
 
 class UpdatedMenu(BaseModel):
@@ -39,11 +38,11 @@ class UpdatedMenu(BaseModel):
 
 
 class SubmenuUpdate(BaseModel):
-    title: Optional[str]
-    description: Optional[str]
+    title: str | None
+    description: str | None
 
 
 class DishUpdate(BaseModel):
-    title: Optional[str]
-    description: Optional[str]
-    price: Optional[str]
+    title: str | None
+    description: str | None
+    price: str | None

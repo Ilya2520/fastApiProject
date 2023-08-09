@@ -1,7 +1,8 @@
 # Standard Library
+from __future__ import annotations
+
 import uuid
 from abc import abstractmethod
-from typing import Union
 
 # Third Party
 from fastapi import Depends
@@ -19,43 +20,43 @@ class Repository:
     def create(
         self,
         item: BaseModel,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
     ) -> dict:
         pass
 
     @abstractmethod
     def get(
         self,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
-        dish_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
+        dish_id: uuid.UUID | None,
     ):
         pass
 
     @abstractmethod
     def get_all(
         self,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
     ):
         pass
 
     @abstractmethod
     def delete(
         self,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
-        dish_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
+        dish_id: uuid.UUID | None,
     ):
         pass
 
     @abstractmethod
     def update(
         self,
-        api_test_menu_id: Union[uuid.UUID, None],
-        submenu_id: Union[uuid.UUID, None],
-        dish_id: Union[uuid.UUID, None],
+        api_test_menu_id: uuid.UUID | None,
+        submenu_id: uuid.UUID | None,
+        dish_id: uuid.UUID | None,
         item: BaseModel,
     ):
         pass

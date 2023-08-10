@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from app.database.database import Session as db_session
 from app.database.database import clear_database
 from app.services.RedisService import RedisService
-from app.crud import app as crud
+from app.crud.crud import app as crud
 
 app = FastAPI()
 

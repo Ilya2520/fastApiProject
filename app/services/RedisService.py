@@ -1,15 +1,14 @@
 # Standard Library
-from __future__ import annotations
 
 import json
 import uuid
 
 # Third Party
-import redis  # type: ignore
+import aioredis  # type: ignore
 
 
-def cache_miss(result,
-               name: str):
+async def cache_miss(result,
+                     name: str):
     result['id'] = str(result['id'])
     if name != 'none':
         for subresult in result[name]:
@@ -17,8 +16,8 @@ def cache_miss(result,
     return result
 
 
-def cache_miss_all(results,
-                   name):
+async def cache_miss_all(results,
+                         name):
     result = []
     for res in results:
         res['id'] = str(res['id'])
@@ -31,11 +30,11 @@ def cache_miss_all(results,
 
 class RedisService:
     def __init__(self):
-        self.redis = redis.Redis(
-            host='redis', port=6379, decode_responses=True
-        )
+        self.redis = aioredis.from_url(
+            'redis://localhost:6379',
+            decode_responses=True)
 
-    def delete_cache(
+    async def delete_cache(
             self,
             path,
             menu_id: uuid.UUID | None = None,
@@ -47,19 +46,19 @@ class RedisService:
         path_to_submenu = f'{path_submenus}{submenu_id}'
         path_to_dishes = f'{path_to_submenu}/dishes/'
         path_to_dish = f'{path_to_dishes}{dish_id}'
-        self.delete_concreate_cache(path)
-        self.delete_concreate_cache(path_to_menu)
-        self.delete_concreate_cache(path_submenus)
-        self.delete_concreate_cache(path_to_submenu)
-        self.delete_concreate_cache(path_to_dishes)
-        self.delete_concreate_cache(path_to_dish)
+        await self.delete_concreate_cache(path)
+        await self.delete_concreate_cache(path_to_menu)
+        await self.delete_concreate_cache(path_submenus)
+        await self.delete_concreate_cache(path_to_submenu)
+        await self.delete_concreate_cache(path_to_dishes)
+        await self.delete_concreate_cache(path_to_dish)
 
-    def delete_concreate_cache(self, path):
-        cache = self.redis.get(path)
+    async def delete_concreate_cache(self, path):
+        cache = await self.redis.get(path)
         if cache:
-            self.redis.delete(path)
+            await self.redis.delete(path)
 
-    def get(
+    async def get(
             self,
             path: str,
             name: str,
@@ -73,12 +72,12 @@ class RedisService:
             return cached_menu
         else:
             print('cache miss')
-            result = cache_miss(result, name)
-            self.redis.set(path, json.dumps(result))
-            self.redis.expire(path, 1000)
+            result = await cache_miss(result, name)
+            await self.redis.set(path, json.dumps(result))
+            await self.redis.expire(path, 1000)
             return result
 
-    def get_all(
+    async def get_all(
             self,
             path: str,
             name,
@@ -93,11 +92,23 @@ class RedisService:
             return js
         else:
             print('cache miss')
-            result, results = cache_miss_all(result_all, name)
-            self.redis.set(path, json.dumps(result))
-            self.redis.expire(path, 1000)
+            result, results = await cache_miss_all(result_all, name)
+            await self.redis.set(path, json.dumps(result))
+            await self.redis.expire(path, 1000)
             return results
 
+    async def save_excel_data(self, data, counts):
+        json_data = json.dumps(data)
+        json_data_counts = json.dumps(counts)
+        await self.redis.set('excel_data', json_data)
+        await self.redis.set('excel_data_counts', json_data_counts)
+
+    async def get_excel_data(self):
+        json_data = await self.redis.get('excel_data')
+        json_data1 = await self.redis.get('excel_data_counts')
+        if json_data:
+            return json.loads(json_data), json.loads(json_data1)
+        return None, None
     #
     # def update(self,
     #            path: str,

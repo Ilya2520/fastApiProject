@@ -4,9 +4,13 @@ import uuid
 
 # Third Party
 from fastapi import Depends, HTTPException
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 # Library
-from app.database.database import DishModel, Session, SubmenuModel, format_price, get_db
+from app.database.database import DishModel, SubmenuModel, format_price
+from app.database.database import AsyncSession as Session
+from app.database.database import get_session as get_db
 from app.models.models import Dish
 from app.repositories.Repository import Repository
 
@@ -16,22 +20,19 @@ class DishRepository(Repository):
         super().__init__(session)
         self.model = Dish
 
-    def get_all(
-        self,
-        api_test_menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None,
+    async def get_all(
+            self,
+            api_test_menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None,
     ):
-        menu = (
-            self.session.query(SubmenuModel)
-            .filter(
-                SubmenuModel.id == submenu_id and SubmenuModel.menu_id == api_test_menu_id
-            )
-            .first()
-        )
-        if menu is None:
+
+        submenu = await self.session.scalars(
+            select(SubmenuModel).where(SubmenuModel.id == submenu_id).options(selectinload(SubmenuModel.dishes)))
+        submenu = submenu.first()
+        if submenu is None:
             return []
         dishes_info = []
-        for dish in menu.dishes:
+        for dish in submenu.dishes:
             dishes_info.append(
                 {
                     'id': dish.id,
@@ -42,27 +43,29 @@ class DishRepository(Repository):
             )
         return dishes_info
 
-    def create(
-        self,
-        dish: Dish,
-        api_test_menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None,
-    ):
-        nw_dish = DishModel(
-            title=dish.title, description=dish.description, price=dish.price
-        )
-        submenu = (
-            self.session.query(SubmenuModel)
-            .filter(
-                SubmenuModel.id == submenu_id and SubmenuModel.menu_id == api_test_menu_id
+    async def create(
+            self,
+            dish: Dish,
+            api_test_menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None,
+    ) -> dict:
+        if dish.id:
+            nw_dish = DishModel(
+                id=dish.id,
+                title=dish.title, description=dish.description, price=dish.price
             )
-            .first()
-        )
+        else:
+            nw_dish = DishModel(
+                title=dish.title, description=dish.description, price=dish.price
+            )
+        submenu = await self.session.scalars(
+            select(SubmenuModel).where(SubmenuModel.id == submenu_id).options(selectinload(SubmenuModel.dishes)))
+        submenu = submenu.first()
         if submenu is None:
             raise HTTPException(status_code=404, detail='Submenu not found')
         submenu.dishes.append(nw_dish)
         self.session.add(nw_dish)
-        self.session.commit()
+        await self.session.commit()
         return {
             'id': nw_dish.id,
             'title': nw_dish.title,
@@ -70,18 +73,16 @@ class DishRepository(Repository):
             'price': format_price(nw_dish.price),
         }
 
-    def get(
-        self,
-        api_test_menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None,
-        dish_id: uuid.UUID | None,
+    async def get(
+            self,
+            api_test_menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None,
+            dish_id: uuid.UUID | None,
     ):
-        submenu = (
-            self.session.query(SubmenuModel)
-            .filter(
-                SubmenuModel.id == submenu_id and SubmenuModel.menu_id == api_test_menu_id)
-            .first()
-        )
+
+        submenu = await self.session.scalars(
+            select(SubmenuModel).where(SubmenuModel.id == submenu_id).options(selectinload(SubmenuModel.dishes)))
+        submenu = submenu.first()
         for a in submenu.dishes:
             if a.id == dish_id:
                 return {
@@ -92,20 +93,16 @@ class DishRepository(Repository):
                 }
         raise HTTPException(status_code=404, detail='dish not found')
 
-    def update(
-        self,
-        api_test_menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None,
-        dish_id: uuid.UUID | None,
-        dish: Dish,
+    async def update(
+            self,
+            api_test_menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None,
+            dish_id: uuid.UUID | None,
+            dish: Dish,
     ):
-        submenu = (
-            self.session.query(SubmenuModel)
-            .filter(
-                SubmenuModel.id == submenu_id and SubmenuModel.menu_id == api_test_menu_id
-            )
-            .first()
-        )
+        submenu = await self.session.scalars(
+            select(SubmenuModel).where(SubmenuModel.id == submenu_id).options(selectinload(SubmenuModel.dishes)))
+        submenu = submenu.first()
         if submenu is not None:
             for a in submenu.dishes:
                 if a.id == dish_id:
@@ -115,8 +112,8 @@ class DishRepository(Repository):
                         a.description = dish.description
                     if dish.price:
                         a.price = dish.price
-                    self.session.commit()
-                    self.session.refresh(a)
+                    await self.session.commit()
+                    await self.session.refresh(a)
                     return {
                         'id': a.id,
                         'title': a.title,
@@ -126,21 +123,18 @@ class DishRepository(Repository):
             raise HTTPException(status_code=404, detail='Dish not found')
         raise HTTPException(status_code=404, detail='Submenu not found')
 
-    def delete(
-        self,
-        api_test_menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None,
-        dish_id: uuid.UUID | None,
+    async def delete(
+            self,
+            api_test_menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None,
+            dish_id: uuid.UUID | None,
     ):
-        submenu = (
-            self.session.query(SubmenuModel)
-            .filter(
-                SubmenuModel.id == submenu_id and SubmenuModel.menu_id == api_test_menu_id)
-            .first()
-        )
+        submenu = await self.session.scalars(
+            select(SubmenuModel).where(SubmenuModel.id == submenu_id).options(selectinload(SubmenuModel.dishes)))
+        submenu = submenu.first()
         for a in submenu.dishes:
             if a.id == dish_id:
-                self.session.delete(a)
-                self.session.commit()
+                await self.session.delete(a)
+                await self.session.commit()
                 return {'message': 'dish was deleted successful'}
         raise HTTPException(status_code=404, detail='dish not found')

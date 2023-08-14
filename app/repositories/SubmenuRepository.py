@@ -2,19 +2,21 @@
 
 import uuid
 
-
 # Third Party
 from fastapi import Depends, HTTPException
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 # Library
 from app.database.database import (
     MenuModel,
-    Session,
     SubmenuModel,
     format_price,
-    get_db,
-    get_submenu_dishes_count,
+    get_submenu_dishes_count
 )
+
+from app.database.database import AsyncSession as Session
+from app.database.database import get_session as get_db
 from app.models.models import Submenu
 from app.repositories.Repository import Repository
 
@@ -24,21 +26,21 @@ class SubmenuRepository(Repository):
         super().__init__(session)
         self.model = Submenu
 
-    def get_all(
-        self,
-        api_test_menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None = None,
+    async def get_all(
+            self,
+            api_test_menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None = None,
     ):
-        menu = (
-            self.session.query(MenuModel)
-            .filter(MenuModel.id == api_test_menu_id)
-            .first()
-        )
+
+        menu = await self.session.scalars(
+            select(MenuModel).where(MenuModel.id == api_test_menu_id).options(
+                selectinload(MenuModel.submenus, SubmenuModel.dishes)))
+        menu = menu.first()
         if menu is None:
             return []
         submenu_info = []
         for submenu in menu.submenus:
-            dishes_count = get_submenu_dishes_count(self.session, submenu.id)
+            dishes_count = await get_submenu_dishes_count(self.session, submenu.id)
             submenu_dishes = []
             for dish in submenu.dishes:
                 submenu_dishes.append(
@@ -60,113 +62,106 @@ class SubmenuRepository(Repository):
             )
         return submenu_info
 
-    def create(
-        self,
-        submenu: Submenu,
-        menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None,
+    async def create(
+            self,
+            submenu: Submenu,
+            menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None,
     ):
-        nw_submenu = SubmenuModel(
-            title=submenu.title, description=submenu.description
-        )
-        dishes_count = get_submenu_dishes_count(self.session, nw_submenu.id)
-        db_menu = (
-            self.session.query(MenuModel)
-            .filter(MenuModel.id == menu_id)
-            .first()
-        )
+        if submenu.id:
+            nw_submenu = SubmenuModel(
+                id=submenu.id,
+                title=submenu.title, description=submenu.description
+            )
+        else:
+            nw_submenu = SubmenuModel(
+                title=submenu.title, description=submenu.description
+            )
+        db_menu = (await self.session.scalars(
+            select(MenuModel).where(MenuModel.id == menu_id).options(selectinload(MenuModel.submenus))))
+        db_menu = db_menu.first()
         if db_menu is None:
             return []
         db_menu.submenus.append(nw_submenu)
         self.session.add(nw_submenu)
-        self.session.commit()
+        await self.session.commit()
+
         return {
             'id': nw_submenu.id,
             'title': nw_submenu.title,
             'description': nw_submenu.description,
-            'dishes_count': dishes_count,
+            'dishes_count': 0,
         }
 
-    def get(
-        self,
-        api_test_menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None,
-        dish_id: uuid.UUID | None,
+    async def get(
+            self,
+            api_test_menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None,
+            dish_id: uuid.UUID | None,
     ):
-        menu = (
-            self.session.query(MenuModel)
-            .filter(MenuModel.id == api_test_menu_id)
-            .first()
-        )
-        for a in menu.submenus:
-            if a.id == submenu_id:
-                dishes_count = get_submenu_dishes_count(
-                    self.session, submenu_id
-                )
-                submenu_info = {
-                    'id': a.id,
-                    'title': a.title,
-                    'description': a.description,
-                    'dishes_count': dishes_count,
+        submenu = await self.session.scalars(
+            select(SubmenuModel).where(SubmenuModel.id == submenu_id).options(selectinload(SubmenuModel.dishes)))
+        submenu = submenu.first()
+        if submenu:
+            dishes_count = await get_submenu_dishes_count(
+                self.session, submenu_id  # type: ignore
+            )
+            submenu_info = {
+                'id': submenu.id,
+                'title': submenu.title,
+                'description': submenu.description,
+                'dishes_count': dishes_count,
+            }
+            dishes_info = [
+                {
+                    'id': dish.id,
+                    'title': dish.title,
+                    'description': dish.description,
+                    'price': format_price(dish.price),
                 }
-                dishes_info = [
-                    {
-                        'id': dish.id,
-                        'title': dish.title,
-                        'description': dish.description,
-                        'price': format_price(dish.price),
-                    }
-                    for dish in a.dishes
-                ]
-                submenu_info['dishes'] = dishes_info
-                return submenu_info
+                for dish in submenu.dishes
+            ]
+            submenu_info['dishes'] = dishes_info
+            return submenu_info
         raise HTTPException(status_code=404, detail='submenu not found')
 
-    def update(
-        self,
-        api_test_menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None,
-        dish_id: uuid.UUID | None,
-        submenu: Submenu,
+    async def update(
+            self,
+            api_test_menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None,
+            dish_id: uuid.UUID | None,
+            update_submenu: Submenu,
     ):
-        menu = (
-            self.session.query(MenuModel)
-            .filter(MenuModel.id == api_test_menu_id)
-            .first()
+        submenu = (
+            await self.session.get(SubmenuModel, submenu_id)
         )
-        if menu is not None:
-            for a in menu.submenus:
-                if a.id == submenu_id:
-                    if submenu.title:
-                        a.title = submenu.title
-                    if submenu.description:
-                        a.description = submenu.description
-                    self.session.commit()
-                    self.session.refresh(a)
-                    return {
-                        'id': a.id,
-                        'title': a.title,
-                        'description': a.description,
-                    }
-            raise HTTPException(status_code=404, detail='Submenu not found')
-        raise HTTPException(status_code=404, detail='Menu not found')
+        if submenu:
+            if update_submenu.title:
+                submenu.title = update_submenu.title
+            if update_submenu.description:
+                submenu.description = update_submenu.description
+            await self.session.commit()
+            await self.session.refresh(submenu)
+            return {
+                'id': submenu.id,
+                'title': submenu.title,
+                'description': submenu.description,
+            }
+        raise HTTPException(status_code=404, detail='Submenu not found')
 
-    def delete(
-        self,
-        api_test_menu_id: uuid.UUID | None,
-        submenu_id: uuid.UUID | None,
-        dish_id: uuid.UUID | None,
+    async def delete(
+            self,
+            api_test_menu_id: uuid.UUID | None,
+            submenu_id: uuid.UUID | None,
+            dish_id: uuid.UUID | None,
     ):
-        menu = (
-            self.session.query(MenuModel)
-            .filter(MenuModel.id == api_test_menu_id)
-            .first()
-        )
-        for i, submenu in enumerate(menu.submenus):
-            if submenu.id == submenu_id:
-                for dish in submenu.dishes:
-                    self.session.delete(dish)
-                self.session.delete(submenu)
-                self.session.commit()
-                return {'message': 'successful delete'}
+        submenu = await self.session.scalars(
+            select(SubmenuModel).where(SubmenuModel.id == submenu_id).options(selectinload(SubmenuModel.dishes)))
+        submenu = submenu.first()
+        if submenu:
+            for dish in submenu.dishes:
+                await self.session.delete(dish)
+            await self.session.delete(submenu)
+            await self.session.commit()
+            return {'message': 'successful delete'}
         raise HTTPException(status_code=404, detail='submenu not found')

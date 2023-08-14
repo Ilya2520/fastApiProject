@@ -1,6 +1,13 @@
-redis==3.5.3
+aioredis
 psycopg2-binary==2.9.1
 requests
 pytest
 sqlalchemy==1.4.25
 fastapi==0.68.1
+celery
+httpx
+pytest-asyncio
+asyncpg
+openpyxl
+pandas
+jsondiff

@@ -1,6 +1,9 @@
 aioredis
 jsondiff
 pandas
+openpyxl
+asyncpg
+celery
 fastapi
 uvicorn==0.15.0
 sqlalchemy

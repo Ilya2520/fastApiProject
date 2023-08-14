@@ -31,7 +31,7 @@ async def cache_miss_all(results,
 class RedisService:
     def __init__(self):
         self.redis = aioredis.from_url(
-            'redis://localhost:6379',
+            'redis://redis:6379',
             decode_responses=True)
 
     async def delete_cache(

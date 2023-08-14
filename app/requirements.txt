@@ -1,4 +1,6 @@
-redis==3.5.3
+aioredis
+jsondiff
+pandas
 fastapi
 uvicorn==0.15.0
 sqlalchemy

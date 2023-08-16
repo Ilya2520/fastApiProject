@@ -64,15 +64,12 @@ class SubmenuRepository(Repository):
 
     async def create(
             self,
-            submenu: Submenu,
+            submenu: Submenu | SubmenuModel,
             menu_id: uuid.UUID | None,
             submenu_id: uuid.UUID | None,
     ):
-        if submenu.id:
-            nw_submenu = SubmenuModel(
-                id=submenu.id,
-                title=submenu.title, description=submenu.description
-            )
+        if type(submenu) is SubmenuModel:
+            nw_submenu = submenu
         else:
             nw_submenu = SubmenuModel(
                 title=submenu.title, description=submenu.description

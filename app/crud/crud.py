@@ -12,8 +12,6 @@ from app.services.SubmenuService import SubmenuService
 
 app = APIRouter()
 
-background_tasks = BackgroundTasks()
-
 
 @app.post('/api/v1/menus/', status_code=201)
 async def create_new_menu(create_menu: Menu, menu: MenuService = Depends()) -> dict:
@@ -32,14 +30,14 @@ async def get_all_menus(menu: MenuService = Depends()):
 
 @app.patch('/api/v1/menus/{menu_id}')
 async def update_concreate_menu(
-        menu_id: uuid.UUID, updated_menu: Menu, menu: MenuService = Depends()
+        menu_id: uuid.UUID, updated_menu: Menu, background_tasks: BackgroundTasks, menu: MenuService = Depends()
 ) -> Menu:
     return await menu.update(menu_id, updated_menu, '/api/v1/menus/', background_tasks)
 
 
 @app.delete('/api/v1/menus/{menu_id}')
 async def delete_concreate_menu(
-        menu_id: uuid.UUID, menu: MenuService = Depends()
+        menu_id: uuid.UUID, background_tasks: BackgroundTasks, menu: MenuService = Depends()
 ) -> dict:
     return await menu.delete(menu_id, '/api/v1/menus/', background_tasks)
 
@@ -74,6 +72,7 @@ async def update_existing_submenu(
         menu_id: uuid.UUID,
         submenu_id: uuid.UUID,
         updated_submenu: Submenu,
+        background_tasks: BackgroundTasks,
         submenu: SubmenuService = Depends(),
 ) -> Submenu:
     return await submenu.update(
@@ -85,6 +84,7 @@ async def update_existing_submenu(
 async def delete_existing_submenu(
         menu_id: uuid.UUID,
         submenu_id: uuid.UUID,
+        background_tasks: BackgroundTasks,
         submenu: SubmenuService = Depends(),
 ) -> dict:
     return await submenu.delete(menu_id, submenu_id, '/api/v1/menus/', background_tasks)
@@ -130,6 +130,7 @@ async def update_existing_dish(
         submenu_id: uuid.UUID,
         dish_id: uuid.UUID,
         updated_dish: Dish,
+        background_tasks: BackgroundTasks,
         dish: DishService = Depends(),
 ) -> Dish:
     return await dish.update(
@@ -142,6 +143,7 @@ async def delete_existing_dish(
         menu_id: uuid.UUID,
         submenu_id: uuid.UUID,
         dish_id: uuid.UUID,
+        background_tasks: BackgroundTasks,
         dish: DishService = Depends(),
 ) -> dict:
     return await dish.delete(menu_id, submenu_id, dish_id, '/api/v1/menus/', background_tasks)

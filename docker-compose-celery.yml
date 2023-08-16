@@ -1,0 +1,52 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  db:
+    build:
+      context: .
+      dockerfile: docker/db.dockerfile
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/app.dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: docker/celery.dockerfile
+    command: celery -A app.tasks.tasks:celery worker --loglevel=info
+    volumes:
+      - ./admin:/app/admin
+    depends_on:
+      - redis
+      - db
+      - app
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/celery.dockerfile
+    command: celery -A app.tasks.tasks:celery beat --loglevel=info
+    volumes:
+      - ./admin:/app/admin
+    depends_on:
+      - redis
+      - db
+      - app

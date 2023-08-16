@@ -45,11 +45,11 @@ class DishRepository(Repository):
 
     async def create(
             self,
-            dish: Dish,
+            dish: Dish | DishModel,
             api_test_menu_id: uuid.UUID | None,
             submenu_id: uuid.UUID | None,
     ) -> dict:
-        if dish.id:
+        if type(dish) is DishModel:
             nw_dish = DishModel(
                 id=dish.id,
                 title=dish.title, description=dish.description, price=dish.price
@@ -100,28 +100,20 @@ class DishRepository(Repository):
             dish_id: uuid.UUID | None,
             dish: Dish,
     ):
-        submenu = await self.session.scalars(
-            select(SubmenuModel).where(SubmenuModel.id == submenu_id).options(selectinload(SubmenuModel.dishes)))
-        submenu = submenu.first()
-        if submenu is not None:
-            for a in submenu.dishes:
-                if a.id == dish_id:
-                    if dish.title:
-                        a.title = dish.title
-                    if dish.description:
-                        a.description = dish.description
-                    if dish.price:
-                        a.price = dish.price
-                    await self.session.commit()
-                    await self.session.refresh(a)
-                    return {
-                        'id': a.id,
-                        'title': a.title,
-                        'description': a.description,
-                        'price': format_price(a.price),
-                    }
-            raise HTTPException(status_code=404, detail='Dish not found')
-        raise HTTPException(status_code=404, detail='Submenu not found')
+        cur_dish = await self.session.get(DishModel, dish_id)
+        if dish.title:
+            cur_dish.title = dish.title
+        if dish.description:
+            cur_dish.description = dish.description
+        if dish.price:
+            cur_dish.price = dish.price
+        await self.session.commit()
+        return {
+            'id': cur_dish.id,
+            'title': cur_dish.title,
+            'description': cur_dish.description,
+            'price': format_price(cur_dish.price),
+        }
 
     async def delete(
             self,
@@ -129,12 +121,11 @@ class DishRepository(Repository):
             submenu_id: uuid.UUID | None,
             dish_id: uuid.UUID | None,
     ):
-        submenu = await self.session.scalars(
-            select(SubmenuModel).where(SubmenuModel.id == submenu_id).options(selectinload(SubmenuModel.dishes)))
-        submenu = submenu.first()
-        for a in submenu.dishes:
-            if a.id == dish_id:
-                await self.session.delete(a)
-                await self.session.commit()
-                return {'message': 'dish was deleted successful'}
+        dish = await self.session.scalars(
+            select(DishModel).where(DishModel.id == dish_id))
+        dish = dish.first()
+        if dish:
+            await self.session.delete(dish)
+            await self.session.commit()
+            return {'message': 'dish was deleted successful '}
         raise HTTPException(status_code=404, detail='dish not found')

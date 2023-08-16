@@ -10,3 +10,4 @@ sqlalchemy
 psycopg2-binary==2.9.1
 requests
 pytest
+celery[redis]

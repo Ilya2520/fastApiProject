@@ -1,5 +1,4 @@
 # Standard Library
-import os
 import uuid
 from collections.abc import AsyncGenerator
 
@@ -9,18 +8,19 @@ from sqlalchemy.future import select
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-
-POSTGRES_USER = os.environ.get('POSTGRES_USER')
-POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
-POSTGRES_HOST = 'db'
-POSTGRES_PORT = '5432'
-POSTGRES_DB = os.environ.get('POSTGRES_DB')
-
-DATABASE_URL = (
-    f'postgresql+asyncpg://{POSTGRES_USER}:'
-    f'{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
-)
 #
+#
+# POSTGRES_USER = 'postgres'  # Или значение, указанное в переменной окружения
+# POSTGRES_PASSWORD = '1234'
+# POSTGRES_HOST = 'db'
+# POSTGRES_PORT = '5432'
+# POSTGRES_DB = os.environ.get('POSTGRES_DB')
+#
+# DATABASE_URL = (
+#      f'postgresql+asyncpg://{POSTGRES_USER}:'
+#      f'{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
+#  )
+
 # engine = create_engine(DATABASE_URL)
 # Base = declarative_base()
 # Session = sessionmaker(bind=engine)
@@ -41,8 +41,8 @@ DATABASE_URL = (
 #     engine, class_=AsyncSession, expire_on_commit=False
 # )
 #
-#
-# DATABASE_URL = 'postgresql+asyncpg://postgres:1234@localhost:5432/postgres'
+# #
+DATABASE_URL = 'postgresql+asyncpg://postgres:1234@db:5432/postgres'
 #
 # if os.environ.get('TESTING'):
 #     # Используйте SQLite для тестов
@@ -52,8 +52,8 @@ DATABASE_URL = (
 #         SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 #     )
 # else:
-# Используйте PostgreSQL для основной базы данных
-engine = create_async_engine(DATABASE_URL, future=True)
+
+engine = create_async_engine(DATABASE_URL, future=True, echo=True)
 Base = declarative_base()
 async_session = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False, future=True  # type: ignore

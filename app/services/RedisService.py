@@ -32,6 +32,7 @@ class RedisService:
     def __init__(self):
         self.redis = aioredis.from_url(
             'redis://redis:6379',
+            # 'redis://localhost:6379',
             decode_responses=True)
 
     async def delete_cache(

@@ -6,11 +6,10 @@ from fastapi import Depends, HTTPException
 from sqlalchemy import select
 
 from sqlalchemy.sql import text
-from sqlalchemy.orm import selectinload
 
 # Library
 
-from app.database.database import AsyncSession as Session, SubmenuModel
+from app.database.database import AsyncSession as Session
 from app.database.database import get_session as get_db
 from app.database.database import (
     MenuModel,
@@ -28,12 +27,12 @@ class MenuRepository(Repository):
 
     async def create(
             self,
-            menu: Menu,
+            menu: Menu | MenuModel,
             api_test_menu_id: uuid.UUID | None,
             submenu_id: uuid.UUID | None,
     ) -> dict:
-        if menu.id:
-            db_menu = MenuModel(id=menu.id, title=menu.title, description=menu.description)
+        if type(menu) is MenuModel:
+            db_menu = menu
         else:
             db_menu = MenuModel(title=menu.title, description=menu.description)
         self.session.add(db_menu)
@@ -158,44 +157,45 @@ class MenuRepository(Repository):
         db_menu = await self.session.get(MenuModel, menu_id)
         if db_menu:
             for submenu in db_menu.submenus:
+                for dish in submenu.dishes:
+                    await self.session.delete(dish)
                 await self.session.delete(submenu)
             await self.session.delete(db_menu)
             await self.session.commit()
             return {'message': 'successful'}
         return {'message': 'error'}
 
-    async def get_all_menus1(self):
-        menus = (
-            await self.session.scalars(
-                select(MenuModel).options(selectinload(MenuModel.submenus).options(selectinload(SubmenuModel.dishes))))
-        )
-        return menus.first()
-
     async def get_all_menus(self):
         query = text("""
-            SELECT
-                m.id AS menu_id,
-                m.title AS menu_title,
-                s.id AS submenu_id,
-                s.title AS submenu_title,
-                d.id AS dish_id,
-                d.title AS dish_title
-            FROM menus m
-            JOIN submenus s ON m.id = s.menu_id
-            LEFT JOIN dishes d ON s.id = d.submenu_id
-        """)
+                    SELECT
+                        m.id AS menu_id,
+                        m.title AS menu_title,
+                        m.description AS menu_description,
+                        s.id AS submenu_id,
+                        s.title AS submenu_title,
+                        s.description AS submenu_description,
+                        d.id AS dish_id,
+                        d.title AS dish_title,
+                        d.description AS dish_description,
+                        d.price AS dish_price
+                    FROM menus m
+                    JOIN submenus s ON m.id = s.menu_id
+                    LEFT JOIN dishes d ON s.id = d.submenu_id
+                """)
 
         result = await self.session.execute(query)
         result = result.all()
         menus = {}
 
         for row in result:
-            menu_id, menu_title, submenu_id, submenu_title, dish_id, dish_title = row
+            menu_id, menu_title, menu_description, submenu_id, submenu_title, submenu_description, dish_id, dish_title, \
+                dish_description, dish_price = row
 
             if menu_id not in menus:
                 menus[menu_id] = {
                     'menu_id': menu_id,
                     'menu_title': menu_title,
+                    'menu_description': menu_description,
                     'submenus': {}
                 }
 
@@ -203,13 +203,16 @@ class MenuRepository(Repository):
                 menus[menu_id]['submenus'][submenu_id] = {
                     'submenu_id': submenu_id,
                     'submenu_title': submenu_title,
+                    'submenu_description': submenu_description,
                     'dishes': []
                 }
 
             if dish_id:
                 menus[menu_id]['submenus'][submenu_id]['dishes'].append({
                     'dish_id': dish_id,
-                    'dish_title': dish_title
+                    'dish_title': dish_title,
+                    'dish_price': dish_price,
+                    'dish_description': dish_description
                 })
 
         return list(menus.values())
